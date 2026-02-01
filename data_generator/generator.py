@@ -1,3 +1,4 @@
+from time import CLOCK_PROCESS_CPUTIME_ID
 from faker import Faker
 from datetime import date
 from datetime import datetime
@@ -9,17 +10,29 @@ import string
 
 fake = Faker('en_CA')
 
-physician_list = []
-for _ in range(12):
-    dr = fake.last_name()
-    physician_list.append(dr)
-    
-class DataQuality(Enum):
-    PERFECT = "perfect"
-    GOOD = "good"
-    POOR = "poor"
-    BAD = "bad"
 
+@dataclass
+class Paramedic:
+    last_name:str
+    first_name:str
+    moh_id:int
+    level:Enum
+    # Could add date_of_level_change for validation if dirty data is created
+   
+class Paramedic_Level(Enum):
+    ACP="ACP"
+    PCP="PCP"
+
+@dataclass
+class Shift:
+    shift_length: int = 12
+    left_early: int | None = None
+    start_time: datetime
+    end_time: datetime
+    paramedic_1: Paramedic
+    paramedic_2: Paramedic | None = None
+    paramedic_3_or_student: Paramedic | None = None 
+    
 @dataclass
 class Patient:
     patient_id:str
@@ -31,82 +44,54 @@ class Patient:
     address: str
     
 @dataclass 
-class Visit:
-    visit_id:str
-    patient_id:str    
-    date_of_visit: date
+class Ambulance_Call:
+    call_id:str
+    patient: Patient    
+    date_of_call: datetime
     procedure_1: str | None = None
     procedure_2: str | None = None
-    attending_physician: str | None = None
+    attending_paramedic: Paramedic | None = None
+    paramedic_2: Paramedic | None = None
+    paramedic_3: Paramedic | None = None
+    problem_code: float
+    ctas: int 
     vitals_bp: str | None = None
     vitals_hr: str | None = None
     vitals_temp: str | None = None
     notes: str | None = None
-
-@dataclass
-class Paramedic:
-    last_name:str
-    first_name:str
-    moh_id:int
-    level:Enum
-   
-class Paramedic_Level(Enum):
-    ACP="ACP"
-    PCP="PCP"   
+ 
 
 def create_paramedic(number_to_create:int) -> list:
-    '''This will create a list of Paramedics with data populated'''
+    '''This will create and return a list of Paramedics objects'''
+    # Currently, moh_id unique number generator runs between 1900-35999 which is 16999 possible numbers, but as their randomly drawn it will take an extremely long time to generate new random numbers as the max is approached
+    if number_to_create >= 10000:
+        raise IndexError("Max number of unique MOH ID's that can be created is 10,000")
     counter = 0
     paramedic_list = []
+
+    # Whileloop repeatedly creates Paramedic objects with unique values, then adds them to the paramedic_list and increments the counter
     while counter < number_to_create:
         last_name = fake.last_name()
         first_name = fake.first_name()
-        # random int 0-99 less than 75 = PCP else ACP
-        # moh_id_pool = set() create unique list 
+        # In real world, ~75% of paramedics are PCP. Assigning levels appripriately 
+        rand_level_assigner = random.randint(0,99)
+        if rand_level_assigner <= 75:
+            level=Paramedic_Level.PCP
+        else:
+            level=Paramedic_Level.ACP
+        # Creating and assigning unique Ministry of Health ID (moh_id)
+        id_pool = set()
+        while len(id_pool) > number_to_create:
+            next_unique_id = random.randint(19000,35999)
+            id_pool.add(next_unique_id)
+        moh_id = id_pool.pop()
 
-    
+        medic = Paramedic(last_name=last_name, first_name = first_name, moh_id = moh_id, level = level)
+
+        paramedic_list.append(medic)
         counter+=1
 
     return paramedic_list
-
-def create_patient(number_to_create:int) -> list:
-    ''''This will return a list of Patient objects populated with synthetic PID data'''
-
-    good_or_bad = random.randint(1,100)
-    # if good_or_bad > 20
-    #     DataQuality = PERFECT
-    # elif good_or_bad == 1
-    #     DataQuality = BAD
-    
-    pt_id_pool = set()
-    if number_to_create > 80000:
-        raise ValueError("Cannot Create More than 800,000 Patients At One Time")
-    while len(pt_id_pool) <= number_to_create:
-        num = random.randint(100000,999999)
-        pt_id_pool.add(num)    
-
-    current_year = datetime.now().year
-    clinic_opened_year = current_year - 28
-
-    p_list = []
-    counter = 0
-
-    # Generates the synthetic information, then creates the unique Patient
-    while counter < number_to_create:   
-        patient_id = f"{random.randint(clinic_opened_year, current_year)}{pt_id_pool.pop()}"
-        first_name = fake.first_name()
-        family_name = fake.last_name()
-        dob = fake.date_of_birth(minimum_age=2, maximum_age=105)
-        address = fake.address()
-        health_card = f"{random.randint(1000,9999)}-{random.randint(100,999)}-{random.randint(100,999)}"
-        # version_code = f"{(random.choices(string.ascii_uppercase, k=2))}"
-        version_code = ''.join(random.choices(string.ascii_uppercase, k=2))
-
-        p = Patient(patient_id=patient_id, first_name = first_name, family_name = family_name, dob = dob,health_card=health_card, version_code=version_code, address=address)
-        p_list.append(p)
-        counter += 1     
-    return p_list
-
 
 
 def create_visit(patient_list: list, number_of_visits: int) -> list:
@@ -131,7 +116,6 @@ def create_visit(patient_list: list, number_of_visits: int) -> list:
         patient_id = p.patient_id
         procedure_1 = ""
         procedure_2 = ""
-        attending_physician = random.choice(physician_list)
         vitals_bp =""
         vitals_hr =""
         vitals_temp =""

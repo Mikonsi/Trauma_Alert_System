@@ -1,2 +1,9 @@
 .venv
 .env
+__pycache__/
+*.pyc
+
+postgres_data/
+
+raw_synthetic_data/
+*.csv
