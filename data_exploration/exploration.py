@@ -205,7 +205,7 @@ def _(calls, mo, staff):
             WHERE patient_age < 18 AND problem_code IN (1,2)
 
             UNION ALL
-    
+
             -- Traumatic VSA (any age)
         	SELECT medic_id, last_name, first_name, call_id, 'Traumatic VSA'::text AS Category
         	FROM base_data
@@ -216,7 +216,7 @@ def _(calls, mo, staff):
         	-- Medical VSA (age 18-60) where paramedics pronounce on scene
 
             UNION ALL
-    
+
             SELECT medic_id, last_name, first_name, call_id, 'Young VSA'::text AS Category
         	FROM base_data
             WHERE patient_age > 18 AND patient_age < 60 
@@ -239,11 +239,6 @@ def _(calls, mo, staff):
         	ROUND(AVG(exposure_count) OVER(PARTITION BY Category), 1) AS service_wide_avg,
         	RANK() OVER(PARTITION BY Category ORDER BY exposure_count DESC) AS Rank_in_Category 
         FROM medic_exposures
-
-
-
-
-
         """
     )
     return

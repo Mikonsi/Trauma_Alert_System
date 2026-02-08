@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS calls(
     call_id BIGINT PRIMARY KEY,
     patient VARCHAR(80),
     date_of_call DATETIME NOT NULL,
-    date_of_birth DATE 
+    date_of_birth DATE, 
     problem_code FLOAT NOT NULL,
     ctas INT NOT NULL,
     vitals_bp VARCHAR(10),
@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS staff_quarantine (
 CREATE TABLE IF NOT EXISTS calls_quarantine(
     call_id BIGINT PRIMARY KEY,
     patient VARCHAR(80),
+    date_of_birth DATE,
     date_of_call TIMESTAMP,
     problem_code FLOAT,
     ctas INT NOT NULL,
@@ -54,23 +55,72 @@ CREATE TABLE IF NOT EXISTS calls_quarantine(
 
 -- CREATE VIEW
 
+DROP VIEW IF EXISTS public.trauma_score_dashboard;
 
 
--- This is the python search table from my Google Colab
+-- Materialized view used here since data is CSV dump, no risk of data becoming stale. Remove Materialized if data source becomes a data stream
+-- * Also must remove "REFRESH MATERIALIZED VIEW on automation script"
 
--- target_medic = input("Enter Medic First or Last Name: ")
--- db.sql(
---     f'''
---     SELECT Name, COUNT(DISTINCT "Call Number/Patient Number") AS Total_Calls,
---     SUM("CTAS 1-Resus") AS Total_CTAS1, SUM(Ped_CTAS1) AS Ped_CTAS1,
---     SUM("CTAS 2-Emerg") AS Total_CTAS2, SUM(Ped_CTAS2) AS Ped_CTAS2,
---     SUM(CASE WHEN Deceased == 'BHP TOR' THEN 1 ELSE 0 END) AS Num_TORs,
---     SUM(CASE WHEN Deceased == 'Obviously Dead' THEN 1 ELSE 0 END) AS Num_Code5s,
---     CallDate_Year AS Year
---     FROM acuity_df
---     WHERE Name LIKE '%{target_medic}%'
---     GROUP BY Name, Year
---     HAVING Total_Calls > 10
---     ORDER BY Year DESC, Total_Calls ASC, Total_CTAS1 DESC
---    '''
--- )
+CREATE OR REPLACE MATERIALIZED VIEW public.trauma_score_dashboard AS
+
+WITH patient_ages AS (
+    SELECT *, EXTRACT(YEAR FROM AGE(date_of_birth)) AS patient_age
+    FROM calls 
+),
+base_data AS (
+    SELECT pa.attending_paramedic_id AS medic_id,
+    staff.last_name, staff.first_name,
+    pa.call_id, pa.patient_age, pa.ctas, pa.problem_code
+    FROM patient_ages pa 
+    JOIN staff on pa.attending_paramedic_id = staff.moh_id
+    UNION ALL 
+    SELECT pa.paramedic_2_id as medic_id,
+    staff.last_name, staff.first_name,
+    pa.call_id, pa.patient_age, pa.ctas, pa.problem_code
+    FROM patient_ages pa 
+    JOIN staff ON pa.paramedic_2_id = staff.moh_id
+),
+
+traumatic_criteria AS(
+    -- Pediatric VSA:
+	SELECT medic_id, last_name, first_name, call_id, 'Ped VSA'::text AS Category
+	FROM base_data
+    WHERE patient_age < 18 AND problem_code IN (1,2)
+
+    UNION ALL
+
+    -- Traumatic VSA (any age)
+	SELECT medic_id, last_name, first_name, call_id, 'Traumatic VSA'::text AS Category
+	FROM base_data
+    WHERE problem_code = 1
+-- Additional data needs to be added to generator to filter for these:
+
+    -- Trauma requiring hospital by-pass
+	-- Any Pediatric CTAS 1
+	-- Any Pediatric CTAS 2 (tracked seperately from CTAS 1's)
+	-- Medical VSA (age 18-60) where paramedics pronounce on scene
+
+    UNION ALL
+
+    SELECT medic_id, last_name, first_name, call_id, 'Young Adult VSA'::text AS Category
+	FROM base_data
+    WHERE patient_age > 18 AND patient_age < 60 
+    AND problem_code = 1 OR problem_code = 2
+	-- Any call where patient dies after paramedic contact
+),
+
+medic_exposures AS (
+    SELECT medic_id, last_name, first_name, Category,
+    COUNT(DISTINCT call_id) AS exposure_count
+    FROM traumatic_criteria 
+    GROUP BY medic_id, last_name, first_name, Category
+)
+
+SELECT 
+	last_name,
+	first_name,
+	Category,
+	exposure_count,
+	ROUND(AVG(exposure_count) OVER(PARTITION BY Category), 1) AS service_wide_avg,
+	RANK() OVER(PARTITION BY Category ORDER BY exposure_count DESC) AS Rank_in_Category 
+FROM medic_exposures
