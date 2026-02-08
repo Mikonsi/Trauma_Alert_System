@@ -40,6 +40,7 @@ def update_calls():
     call_schema = {
         "call_id":pl.String,
         "patient": pl.String,
+        "date_of_birth": pl.Date,
         "date_of_call": pl.Datetime,
         "problem_code": pl.Float32,
         "ctas": pl.Int32,
