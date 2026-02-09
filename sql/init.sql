@@ -4,12 +4,12 @@ CREATE TABLE IF NOT EXISTS staff (
     last_name VARCHAR(50) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     level VARCHAR(20) NOT NULL   
-)
+);
 
 CREATE TABLE IF NOT EXISTS calls(
     call_id BIGINT PRIMARY KEY,
     patient VARCHAR(80),
-    date_of_call DATETIME NOT NULL,
+    date_of_call TIMESTAMP NOT NULL,
     date_of_birth DATE, 
     problem_code FLOAT NOT NULL,
     ctas INT NOT NULL,
@@ -26,14 +26,14 @@ CREATE TABLE IF NOT EXISTS calls(
         FOREIGN KEY(attending_paramedic_id)
         REFERENCES staff(moh_id)
         ON DELETE RESTRICT
-)
+);
 
 CREATE TABLE IF NOT EXISTS staff_quarantine (
     moh_id INT PRIMARY KEY,
     last_name VARCHAR(50),
     first_name VARCHAR(50),
     level VARCHAR(20) 
-)
+);
 
 CREATE TABLE IF NOT EXISTS calls_quarantine(
     call_id BIGINT PRIMARY KEY,
@@ -58,10 +58,10 @@ CREATE TABLE IF NOT EXISTS calls_quarantine(
 DROP VIEW IF EXISTS public.trauma_score_dashboard;
 
 
--- Materialized view used here since data is CSV dump, no risk of data becoming stale. Remove Materialized if data source becomes a data stream
--- * Also must remove "REFRESH MATERIALIZED VIEW on automation script"
+-- Materialized view maybe used here since data is CSV dump, no risk of data becoming stale. Remove Materialized if data source becomes a data stream
+-- * Also must add "REFRESH MATERIALIZED VIEW on automation script if materialization is used
 
-CREATE OR REPLACE MATERIALIZED VIEW public.trauma_score_dashboard AS
+CREATE OR REPLACE VIEW public.trauma_score_dashboard AS
 
 WITH patient_ages AS (
     SELECT *, EXTRACT(YEAR FROM AGE(date_of_birth)) AS patient_age
@@ -124,3 +124,4 @@ SELECT
 	ROUND(AVG(exposure_count) OVER(PARTITION BY Category), 1) AS service_wide_avg,
 	RANK() OVER(PARTITION BY Category ORDER BY exposure_count DESC) AS Rank_in_Category 
 FROM medic_exposures
+;
