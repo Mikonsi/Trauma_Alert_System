@@ -6,13 +6,12 @@ from sqlalchemy import create_engine
 
 
 
-
-load_dotenv("../.env")
+load_dotenv(".env")
 
 user = os.getenv("POSTGRES_USER")
 password = os.getenv("POSTGRES_PASSWORD")
 host = os.getenv("POSTGRES_HOST")
-port = os.getenv("PORT")
+port = os.getenv("PORT", "5432")
 db = os.getenv("DB_NAME")
 
 uri = f"postgresql://{user}:{password}@{host}:{port}/{db}"
@@ -20,12 +19,14 @@ uri = f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
 CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
 PROJECT_ROOT = CURRENT_DIR.parent
-DATA_DIR = PROJECT_ROOT/"data_generator"
-
+DATA_DIR = PROJECT_ROOT/ "data_generator"
+SQL_DIR = PROJECT_ROOT/ "sql"
 
 
 
 def update_staff():
+    """This function will read most recent staff csv file from DATA_DIR and will first stage it, check the db for duplicates, then insert into db"""
+    
     staff_schema = {
         "last_name": pl.String,
         "first_name": pl.String,
@@ -34,7 +35,6 @@ def update_staff():
     }
 
     staff_path = DATA_DIR / "staff_list.csv"
-      
     staff_df = pl.read_csv(staff_path)
     
     staff_clean = staff_df.with_columns([
@@ -47,7 +47,7 @@ def update_staff():
         )
     )
     staff_to_db = staff_clean.join(staff_quarantine, on=staff_df.columns, how="anti")
-    staff_to_db.write_database("staff", uri, if_table_exists="append", engine="sqlalchemy")
+    staff_to_db.write_database("staff", uri, if_table_exists="append")
     staff_quarantine.write_database("staff_quarantine", uri, if_table_exists="append", engine="sqlalchemy")
     
 
