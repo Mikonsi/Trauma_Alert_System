@@ -1,8 +1,10 @@
 import polars as pl
 import os
-import pathlib
+import pathlib 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+
+
 
 
 load_dotenv("../.env")
@@ -15,6 +17,14 @@ db = os.getenv("DB_NAME")
 
 uri = f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
+
+CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
+PROJECT_ROOT = CURRENT_DIR.parent
+DATA_DIR = PROJECT_ROOT/"data_generator"
+
+
+
+
 def update_staff():
     staff_schema = {
         "last_name": pl.String,
@@ -22,7 +32,10 @@ def update_staff():
         "moh_id": pl.Int32,
         "level": pl.String
     }
-    staff_df = pl.read_csv("../data_generator/staff_list.csv")
+
+    staff_path = DATA_DIR / "staff_list.csv"
+      
+    staff_df = pl.read_csv(staff_path)
     
     staff_clean = staff_df.with_columns([
                                             pl.col(col).cast(dtype, strict=False) for col, dtype in staff_schema.items()
@@ -55,7 +68,9 @@ def update_calls():
         "paramedic_2_id": pl.String,
         "paramedic_3_id": pl.String,
     }
-    calls_df = pl.read_csv("../data_generator/call_list.csv")
+
+    calls_path = DATA_DIR / "call_list.csv"
+    calls_df = pl.read_csv(calls_path)
     calls_clean = calls_df.with_columns([
                                             pl.col(col).cast(dtype, strict=False) for col, dtype in call_schema.items()
                                         ])
