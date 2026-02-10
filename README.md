@@ -38,3 +38,6 @@ inside the SQL directory.
 
 Metabase was used as a dashboard to display the result.
 
+The entire pipeline is automated with the main.py file triggering the events.  
+The podman compose file includes healthchecks for the db.
+

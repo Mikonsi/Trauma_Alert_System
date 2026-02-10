@@ -7,41 +7,70 @@ app = marimo.App(width="full")
 @app.cell
 def _():
     import marimo as mo
-    return
-
-
-@app.cell
-def _():
-    import os
-    import dotenv
     import polars as pl
-    from sqlalchemy import create_engine
+    from dotenv import load_dotenv
+    import os
 
-
-
-    # engine = sqlalchemy.create_engine(sqlalchemy)
-    return create_engine, os
+    # Load environment variables
+    load_dotenv()
+    return mo, os, pl
 
 
 @app.cell
-def _(create_engine, os):
-    load_dotenv = (".env")
+def _(os, pl):
+    # Build connection string from environment variables
+    user = os.getenv("POSTGRES_USER", "admin")
+    password = os.getenv("POSTGRES_PASSWORD")
+    db_name = os.getenv("DB_NAME", "paramedic_db")
+    host = "localhost"
+    port = "5432"
 
-    _password = os.environ.get("POSTGRES_PASSWORD")
-    _username = os.environ.get("POSTGRES_USER")
-    _host = os.environ.get("POSTGRES_HOST")
-    _port=os.environ.get("PORT")
-    _database = os.environ.get("DB_NAME")
-    DATABASE_URL = f"postgresql://{_username}:{_password}@{_host}:{_port}/{_database}"
+    connection_string = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
 
-    uri = f"postgresql://{_username}:{_password}@{_host}:{_port}/{_database}"
+    # Query the view
+    df = pl.read_database_uri(
+        query="SELECT * FROM public.trauma_score_dashboard",
+        uri=connection_string,
+        engine="connectorx"
+    )
 
-    engine = create_engine(uri)
+    df
+    return (df,)
+
+
+@app.cell
+def _(df, mo):
+    # Interactive table
+    mo.ui.table(df, selection=None)
     return
 
 
 @app.cell
-def _():
+def _(df, mo):
+    # Summary stats
+    mo.md(f"""
+    ## Dashboard Summary
+
+    **Total Records:** {len(df)}
+
+    **Categories:** {df['category'].n_unique()}
+    """)
+    return
+
+
+@app.cell
+def _(df, mo, pl):
+    # Category breakdown
+    category_stats = (
+        df.group_by("category")
+        .agg([
+            pl.col("exposure_count").sum().alias("total_exposures"),
+            pl.col("medic_id").n_unique().alias("medic_count")
+        ])
+        .sort("total_exposures", descending=True)
+    )
+
+    mo.ui.table(category_stats)
     return
 
 

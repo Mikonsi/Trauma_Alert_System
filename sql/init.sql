@@ -53,9 +53,13 @@ CREATE TABLE IF NOT EXISTS calls_quarantine(
 );
 
 
+-- Grant select privildges to Grafana:
+GRANT SELECT ON public.trauma_score_dashboard TO admin;
+
+
 -- CREATE VIEW
 
-DROP VIEW IF EXISTS public.trauma_score_dashboard;
+-- DROP VIEW IF EXISTS public.trauma_score_dashboard;
 
 
 -- Materialized view maybe used here since data is CSV dump, no risk of data becoming stale. Remove Materialized if data source becomes a data stream
@@ -95,17 +99,17 @@ traumatic_criteria AS(
     WHERE problem_code = 1
 -- Additional data needs to be added to generator to filter for these:
 
-    -- Trauma requiring hospital by-pass
-	-- Any Pediatric CTAS 1
-	-- Any Pediatric CTAS 2 (tracked seperately from CTAS 1's)
-	-- Medical VSA (age 18-60) where paramedics pronounce on scene
+        -- Trauma requiring hospital by-pass
+        -- Any Pediatric CTAS 1
+        -- Any Pediatric CTAS 2 (tracked seperately from CTAS 1's)
+        -- Medical VSA (age 18-60) where paramedics pronounce on scene
 
     UNION ALL
 
     SELECT medic_id, last_name, first_name, call_id, 'Young Adult VSA'::text AS Category
 	FROM base_data
     WHERE patient_age > 18 AND patient_age < 60 
-    AND problem_code = 1 OR problem_code = 2
+    AND problem_code IN (1,2)
 	-- Any call where patient dies after paramedic contact
 ),
 

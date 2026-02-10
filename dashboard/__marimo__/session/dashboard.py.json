@@ -6,12 +6,12 @@
   "cells": [
     {
       "id": "Hbol",
-      "code_hash": "1d0db38904205bec4d6f6f6a1f6cec3e",
+      "code_hash": "4efaecf52b3de23fe0eab279daba9157",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/plain": ""
+            "text/html": "<pre class='text-xs'>True</pre>"
           }
         }
       ],
@@ -19,33 +19,39 @@
     },
     {
       "id": "MJUe",
-      "code_hash": "2a959bdbd0f632609b58140b464b37a5",
+      "code_hash": "efd4f23cb0818a3ac5545b95fb90eb47",
       "outputs": [
         {
-          "type": "data",
-          "data": {
-            "text/plain": ""
-          }
+          "type": "error",
+          "ename": "exception",
+          "evalue": "db error: ERROR: relation \"public.trauma_score_dashboard\" does not exist",
+          "traceback": []
         }
       ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stderr",
+          "text": "<span class=\"codehilite\"><div class=\"highlight\"><pre><span></span><span class=\"gt\">Traceback (most recent call last):</span>\n  File <span class=\"nb\">&quot;/home/alfy/Programming/portfolio/acuity_tracker/.venv/lib/python3.12/site-packages/polars/io/database/_utils.py&quot;</span>, line <span class=\"m\">59</span>, in <span class=\"n\">_read_sql_connectorx</span>\n<span class=\"w\">    </span><span class=\"n\">tbl</span> <span class=\"o\">=</span> <span class=\"n\">cx</span><span class=\"o\">.</span><span class=\"n\">read_sql</span><span class=\"p\">(</span>\n<span class=\"w\">          </span><span class=\"pm\">^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;/home/alfy/Programming/portfolio/acuity_tracker/.venv/lib/python3.12/site-packages/connectorx/__init__.py&quot;</span>, line <span class=\"m\">419</span>, in <span class=\"n\">read_sql</span>\n<span class=\"w\">    </span><span class=\"n\">result</span> <span class=\"o\">=</span> <span class=\"n\">_read_sql</span><span class=\"p\">(</span>\n<span class=\"w\">             </span><span class=\"pm\">^^^^^^^^^^</span>\n<span class=\"gr\">RuntimeError</span>: <span class=\"n\">db error: ERROR: relation &quot;public.trauma_score_dashboard&quot; does not exist</span>\n\n<span class=\"gt\">The above exception was the direct cause of the following exception:</span>\n\n<span class=\"gt\">Traceback (most recent call last):</span>\n  File <span class=\"nb\">&quot;/home/alfy/Programming/portfolio/acuity_tracker/.venv/lib/python3.12/site-packages/marimo/_runtime/executor.py&quot;</span>, line <span class=\"m\">138</span>, in <span class=\"n\">execute_cell</span>\n<span class=\"w\">    </span><span class=\"n\">exec</span><span class=\"p\">(</span><span class=\"n\">cell</span><span class=\"o\">.</span><span class=\"n\">body</span><span class=\"p\">,</span> <span class=\"n\">glbls</span><span class=\"p\">)</span>\n  File <span class=\"nb\">&quot;/tmp/marimo_71480/__marimo__cell_MJUe_.py&quot;</span>, line <span class=\"m\">11</span>, in <span class=\"n\">&lt;module&gt;</span>\n<span class=\"w\">    </span><span class=\"n\">df</span> <span class=\"o\">=</span> <span class=\"n\">pl</span><span class=\"o\">.</span><span class=\"n\">read_database_uri</span><span class=\"p\">(</span>\n<span class=\"w\">         </span><span class=\"pm\">^^^^^^^^^^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;/home/alfy/Programming/portfolio/acuity_tracker/.venv/lib/python3.12/site-packages/polars/io/database/functions.py&quot;</span>, line <span class=\"m\">514</span>, in <span class=\"n\">read_database_uri</span>\n<span class=\"w\">    </span><span class=\"k\">return</span> <span class=\"n\">_read_sql_connectorx</span><span class=\"p\">(</span>\n<span class=\"w\">           </span><span class=\"pm\">^^^^^^^^^^^^^^^^^^^^^</span>\n  File <span class=\"nb\">&quot;/home/alfy/Programming/portfolio/acuity_tracker/.venv/lib/python3.12/site-packages/polars/io/database/_utils.py&quot;</span>, line <span class=\"m\">72</span>, in <span class=\"n\">_read_sql_connectorx</span>\n<span class=\"w\">    </span><span class=\"k\">raise</span> <span class=\"nb\">type</span><span class=\"p\">(</span><span class=\"n\">err</span><span class=\"p\">)(</span><span class=\"n\">errmsg</span><span class=\"p\">)</span> <span class=\"kn\">from</span><span class=\"w\"> </span><span class=\"nn\">err</span>\n<span class=\"gr\">RuntimeError</span>: <span class=\"n\">db error: ERROR: relation &quot;public.trauma_score_dashboard&quot; does not exist</span>\n</pre></div>\n</span>",
+          "mimetype": "application/vnd.marimo+traceback"
+        }
+      ]
+    },
+    {
+      "id": "vblA",
+      "code_hash": "36d33b2992bf6f627d84177bfd5fc205",
+      "outputs": [],
       "console": []
     },
     {
-      "id": "vqnW",
-      "code_hash": "f177a47105f591129e6a3c2648fd2e66",
-      "outputs": [
-        {
-          "type": "data",
-          "data": {
-            "text/plain": ""
-          }
-        }
-      ],
+      "id": "bkHC",
+      "code_hash": "c5df2e4645e6ee6ccedca046d74b5568",
+      "outputs": [],
       "console": []
     },
     {
-      "id": "uxPI",
-      "code_hash": null,
+      "id": "lEQa",
+      "code_hash": "9aa0928200e6d513d4508a4d09e3a712",
       "outputs": [],
       "console": []
     }
