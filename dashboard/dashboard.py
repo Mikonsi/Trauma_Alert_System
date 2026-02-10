@@ -58,21 +58,5 @@ def _(df, mo):
     return
 
 
-@app.cell
-def _(df, mo, pl):
-    # Category breakdown
-    category_stats = (
-        df.group_by("category")
-        .agg([
-            pl.col("exposure_count").sum().alias("total_exposures"),
-            pl.col("medic_id").n_unique().alias("medic_count")
-        ])
-        .sort("total_exposures", descending=True)
-    )
-
-    mo.ui.table(category_stats)
-    return
-
-
 if __name__ == "__main__":
     app.run()

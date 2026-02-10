@@ -49,13 +49,8 @@ CREATE TABLE IF NOT EXISTS calls_quarantine(
     procedure_2 VARCHAR(60),
     attending_paramedic_id INT,
     paramedic_2_id INT,
-    paramedic_3_id INT,
+    paramedic_3_id INT
 );
-
-
--- Grant select privildges to Grafana:
-GRANT SELECT ON public.trauma_score_dashboard TO admin;
-
 
 -- CREATE VIEW
 
@@ -128,4 +123,11 @@ SELECT
 	ROUND(AVG(exposure_count) OVER(PARTITION BY Category), 1) AS service_wide_avg,
 	RANK() OVER(PARTITION BY Category ORDER BY exposure_count DESC) AS Rank_in_Category 
 FROM medic_exposures
+;
+
+-- Grant select privildges to Grafana:
+GRANT SELECT ON ALL VIEWS IN SCHEMA public TO admin;
+GRANT SELECT on public.trauma_score_dashboard TO admin;
+
+
 ;
