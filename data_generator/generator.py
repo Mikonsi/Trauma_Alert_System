@@ -164,7 +164,7 @@ def create_paramedic(number_to_create:int) -> list:
 def create_ambulance_calls(staff_list: list, number_of_calls: int, range_start: datetime, range_end: datetime) -> list:
     '''This accept list of paramedics, a date range, and a number of calls to create for those paramedics within that daterange, and will return a list of calls complete with Patient and Paramedic objects included.'''
       
-    if number_of_calls > 450000:
+    if number_of_calls > 999999:
         raise IndexError("Unable to generate more than 450,000 unique visits")
     current_date = datetime.now()
     call_id_pool = set()
@@ -276,8 +276,11 @@ def main():
     paramedic_list = create_paramedic(500)
     create_csv(paramedic_list, Csv_Type.PARAMEDIC)
     today=datetime.now()
-    yesterday = today - timedelta(days=1) 
-    call_list = create_ambulance_calls(paramedic_list, 100000, yesterday, today)
+    yesterday = today - timedelta(days=1)
+    # last_year was used to populate the db on the first run only and daily updates contine from there
+    # last_year = today - timedelta(days=365) 
+    call_list = create_ambulance_calls(paramedic_list, 5000,
+yesterday, yesterday)
     create_csv(call_list, Csv_Type.AMBULANCE_CALL)
 
 main()  
