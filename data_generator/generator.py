@@ -79,31 +79,13 @@ class Paramedic:
     first_name:str
     moh_id:int
     level:Enum
+    station: int
+    platoon: int
     # Could add date_of_level_change for validation if dirty data is created
    
 class Paramedic_Level(Enum):
     ACP="ACP"
     PCP="PCP"
-
-# @dataclass
-# class Shift:
-#     shift_length: int = 12
-#     left_early: int | None = None
-#     start_time: datetime
-#     end_time: datetime
-#     paramedic_1: Paramedic
-#     paramedic_2: Paramedic | None = None
-#     paramedic_3_or_student: Paramedic | None = None 
-    
-@dataclass
-class Patient:
-    patient_id:str
-    first_name: str
-    family_name: str
-    dob: date
-    health_card: str
-    version_code: str
-    address: str
     
 @dataclass 
 class Ambulance_Call:
@@ -113,18 +95,12 @@ class Ambulance_Call:
     date_of_call: datetime
     problem_code: float
     ctas: int 
-    vitals_bp: str | None = None
-    vitals_hr: str | None = None
-    vitals_temp: str | None = None
-    procedure_1: str | None = None
-    procedure_2: str | None = None
+    station: int
+    hospital_type: str
     attending_paramedic_id: int | None = None
     paramedic_2_id: int| None = None
     paramedic_3_id: int | None = None
-
-    # notes: str | None = None
- 
-
+     
 def create_paramedic(number_to_create:int) -> list:
     '''This will create and return a list of Paramedics objects'''
     # Currently, moh_id unique number generator runs between 1900-35999 which is 16999 possible numbers, but as their randomly drawn it will take an extremely long time to generate new random numbers as the max is approached
@@ -137,7 +113,9 @@ def create_paramedic(number_to_create:int) -> list:
         next_unique_id = random.randint(19000,35999)
         id_pool.add(next_unique_id)
 
-    # Whileloop repeatedly creates Paramedic objects with unique values, then adds them to the paramedic_list and increments the counter
+     # Whileloop repeatedly creates Paramedic objects with unique values, then adds them to the paramedic_list and increments the counter
+     # Platoon is assigned outside of the loop so that it evenly distributes across all staff without being reset each time
+    platoon = 0
     while counter < number_to_create:
         last_name = fake.last_name()
         first_name = fake.first_name()
@@ -149,13 +127,38 @@ def create_paramedic(number_to_create:int) -> list:
             level=Paramedic_Level.ACP
         # Creating and assigning unique Ministry of Health ID (moh_id)
         moh_id = id_pool.pop()
+
+        # Station Picking: Assigns different probabilities to stations based on population density around station area
+        station_picker = random.randint(0,22)
+        if station_picker < 2:
+            station = 1
+        elif station_picker <= 4:
+            station = 2
+        elif station_picker <= 7:
+            station = 3
+        elif station_picker <= 12:
+            station = 4
+        elif station_picker <= 16:
+            station = 5
+        else:
+            station = 6 
+
+        # Platoon was initially assigned outside the while loop:
+        if platoon >= 4:
+            platoon = 0
+                        
+
         medic = Paramedic(last_name=last_name,
                           first_name = first_name,
                           moh_id = moh_id,
-                          level = level)
+                          level = level,
+                          station = station,
+                          platoon = platoon
+                      )
 
         paramedic_list.append(medic)
         counter+=1
+        platoon += 1
 
     return paramedic_list
 
@@ -173,47 +176,72 @@ def create_ambulance_calls(staff_list: list, number_of_calls: int, range_start: 
         num = call_id + 1
         call_id_pool.add(num)
         call_id +=1 
+
     c_list = []
     counter = 0
+    trauma_problem_codes = [2,66,67]
+        
+
     while counter < number_of_calls:
-        # Add random generation if hit add 3rd paramedic to crew (sometimes student who is not in staff list)
-        p1, p2=random.sample(staff_list,2)
-        attending_paramedic_id = p1.moh_id
-        paramedic_2_id = p2.moh_id
-        paramedic_3_id = None
+        # Number of paramedics on scene:
+        crew_config = random.randint(1,10)
+        
+        if crew_config <= 2: # First Response Unit
+            p1 =  random.choice(staff_list)
+            attending_paramedic_id = p1.moh_id
+            paramedic_2_id = None
+            paramedic_3_id = None
+        elif crew_config <= 9: # Normal Crew
+            p1,p2 = random.sample(staff_list,2)
+            attending_paramedic_id = p1.moh_id
+            paramedic_2_id = p2.moh_id
+            paramedic_3_id = None
+        else: # Crew plus student/pbserver
+            p1,p2,p3 = random.sample(staff_list,3)
+            attending_paramedic_id = p1.moh_id
+            paramedic_2_id = p2.moh_id
+            paramedic_3_id = p3.moh_id
+        # Date of Call picker:
         date_of_call = fake.date_time_between_dates(range_start, range_end)
         call_id = call_id_pool.pop()
+        # Generating patient naumes:
         patient = f"{fake.first_name()}, {fake.last_name()}"
         date_of_birth = fake.date_of_birth(minimum_age=0, maximum_age=110)
-        procedure_1 = ""
-        procedure_2 = ""
-        vitals_bp =""
-        vitals_hr =""
-        vitals_temp =""
-
+        # Station Picking: Assigns different probabilities to stations based on population density around station area
+        station = p1.station         
+        
+        # Assigning Porblem Code
         problem = random.choice(list(paramedic_problem_codes.keys()))
         problem_code = float(problem)
-        # notes = ""
+        # Assigning CTAS based on probabilities, CTAS 1/2 are most critical, most calls are 3, or 4, 5 is the lowest and is rarely used
         ctas_predictor = random.randint(0,100)
         if ctas_predictor > 60:
             ctas = random.randint(3,4)
         else:
             rare_ctas = [1,2,5]
             ctas = random.choice(rare_ctas)
-    
-        ac = Ambulance_Call(call_id=call_id,
+        if problem_code in trauma_problem_codes and ctas <= 2:
+            trauma_bypass = random.randint(0,1)
+            if trauma_bypass == 0:
+                hospital_type = "Local"
+            else:
+                hospital_type = "Trauma Center"
+        else:
+            hospital_type = "Local"
+        
+        ac = Ambulance_Call(
+                            call_id=call_id,
                             patient=patient,
                             date_of_birth=date_of_birth,
                             date_of_call=date_of_call,
                             problem_code=problem_code,
                             ctas=ctas,
-                            vitals_bp=vitals_bp,
-                            vitals_hr=vitals_hr,
-                            vitals_temp=vitals_temp,
-                            procedure_1=procedure_1,
-                            procedure_2=procedure_2,
-                            attending_paramedic_id=attending_paramedic_id, paramedic_2_id=paramedic_2_id,
-                            paramedic_3_id=paramedic_3_id)
+                            station = station,
+                            hospital_type = hospital_type,
+                            attending_paramedic_id=attending_paramedic_id,
+                            paramedic_2_id=paramedic_2_id,
+                            paramedic_3_id=paramedic_3_id,
+                                                    )
         c_list.append(ac)
         counter += 1
     return c_list
@@ -228,7 +256,14 @@ def create_csv(item_list: list, csv_type: Csv_Type):
     dict_ls = []    
     if csv_type == Csv_Type.PARAMEDIC:
         file_name = "staff_list.csv"
-        fieldnames = ["last_name","first_name","moh_id","level"]
+        fieldnames = [
+            "last_name",
+            "first_name",
+            "moh_id",
+            "level",
+            "station",
+            "platoon"
+        ]
         for field in item_list:
             row = asdict(field)
             if isinstance(row.get('level'), Enum):
@@ -238,20 +273,19 @@ def create_csv(item_list: list, csv_type: Csv_Type):
         
     elif csv_type == Csv_Type.AMBULANCE_CALL:
         file_name = "call_list.csv"
-        fieldnames = ["call_id",
+        fieldnames = [
+            "call_id",
             "patient",
             "date_of_birth",
             "date_of_call",
             "problem_code",
             "ctas",
-            "vitals_bp",
-            "vitals_hr",
-            "vitals_temp",
-            "procedure_1",
-            "procedure_2",
+            "station",
+            "hospital_type",
             "attending_paramedic_id",
             "paramedic_2_id",
-            "paramedic_3_id",]
+            "paramedic_3_id",
+        ]
         for field in item_list:
             row = asdict(field)
             if isinstance(row['date_of_call'], datetime):
@@ -272,7 +306,6 @@ def create_csv(item_list: list, csv_type: Csv_Type):
 
             
 def main():
-    ''''''
     paramedic_list = create_paramedic(500)
     create_csv(paramedic_list, Csv_Type.PARAMEDIC)
     today=datetime.now()

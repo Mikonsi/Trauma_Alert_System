@@ -31,5 +31,17 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
+  # etl-worker:
+  #   build:
+
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     volumes:
+        
+
+
+
+
 volumes:
   grafana_data:

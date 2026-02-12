@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 
 
+
 load_dotenv(".env")
 
 user = os.getenv("POSTGRES_USER")
@@ -18,7 +19,7 @@ uri = f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
 CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
 PROJECT_ROOT = CURRENT_DIR.parent
-DATA_DIR = PROJECT_ROOT/ "data_generator"
+DATA_DIR = PROJECT_ROOT / "data_generator"
 SQL_DIR = PROJECT_ROOT/ "sql"
 
 

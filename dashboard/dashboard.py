@@ -14,7 +14,7 @@ def _():
 
     # Load environment variables
     load_dotenv()
-    return mo, os, pl, px
+    return os, pl
 
 
 @app.cell
@@ -40,44 +40,8 @@ def _(os, pl):
 
 
 @app.cell
-def _(df, mo):
-    # Interactive table
-    mo.ui.table(df)
-    return
-
-
-@app.cell
-def _(df, mo):
-    mo.ui.data_explorer(df)
-    return
-
-
-@app.cell
-def _(df, mo, px):
-    _plot = px.bar_polar(df.Category)
-    plot = mo.ui.plotly(df)
-    mo.ui.pl
-    return
-
-
-app._unparsable_cell(
-    r"""
-    mo.ui.
-    """,
-    name="_"
-)
-
-
-@app.cell
-def _(df, mo):
-    # Summary stats
-    mo.md(f"""
-    ## Dashboard Summary
-
-    **Total Records:** {len(df)}
-
-    **Categories:** {df['category'].n_unique()}
-    """)
+def _(df):
+    df.head()
     return
 
 
