@@ -2,7 +2,6 @@ import polars as pl
 import os
 import pathlib 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
 
 
 
@@ -19,7 +18,7 @@ uri = f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
 CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
 PROJECT_ROOT = CURRENT_DIR.parent
-DATA_DIR = PROJECT_ROOT / "data_generator"
+DATA_DIR = PROJECT_ROOT #/  "data_generator"
 SQL_DIR = PROJECT_ROOT/ "sql"
 
 
@@ -31,7 +30,9 @@ def update_staff():
         "last_name": pl.String,
         "first_name": pl.String,
         "moh_id": pl.Int32,
-        "level": pl.String
+        "level": pl.String,
+        "station": pl.Int32,
+        "platoon": pl.Int32
     }
 
     staff_path = DATA_DIR / "staff_list.csv"
@@ -53,20 +54,17 @@ def update_staff():
 
 def update_calls():  
     call_schema = {
-        "call_id":pl.String,
+        "call_id":pl.Int64,
         "patient": pl.String,
         "date_of_birth": pl.Date,
         "date_of_call": pl.Datetime,
         "problem_code": pl.Float32,
         "ctas": pl.Int32,
-        "vitals_bp": pl.String,
-        "vitals_hr": pl.Int32,
-        "vitals_temp": pl.Float32,
-        "procedure_1": pl.String,
-        "procedure_2":pl.String,
-        "attending_paramedic_id": pl.String,
-        "paramedic_2_id": pl.String,
-        "paramedic_3_id": pl.String,
+        "station": pl.Int32,
+        "hospital_type": pl.String,
+        "attending_paramedic_id": pl.Int32,
+        "paramedic_2_id": pl.Int32,
+        "paramedic_3_id": pl.Int32,
     }
 
     calls_path = DATA_DIR / "call_list.csv"

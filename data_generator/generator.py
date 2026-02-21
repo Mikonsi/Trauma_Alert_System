@@ -89,7 +89,7 @@ class Paramedic_Level(Enum):
     
 @dataclass 
 class Ambulance_Call:
-    call_id:str
+    call_id:int
     patient: str 
     date_of_birth: date    
     date_of_call: datetime
@@ -115,7 +115,7 @@ def create_paramedic(number_to_create:int) -> list:
 
      # Whileloop repeatedly creates Paramedic objects with unique values, then adds them to the paramedic_list and increments the counter
      # Platoon is assigned outside of the loop so that it evenly distributes across all staff without being reset each time
-    platoon = 0
+    platoon = 1
     while counter < number_to_create:
         last_name = fake.last_name()
         first_name = fake.first_name()
@@ -144,8 +144,8 @@ def create_paramedic(number_to_create:int) -> list:
             station = 6 
 
         # Platoon was initially assigned outside the while loop:
-        if platoon >= 4:
-            platoon = 0
+        if platoon >= 5:
+            platoon = 1
                         
 
         medic = Paramedic(last_name=last_name,
@@ -164,46 +164,54 @@ def create_paramedic(number_to_create:int) -> list:
 
 #TODO: Create shifts so paramedics are realistically assigned calls while on shift according to datetime of call occuring.
 
-def create_ambulance_calls(staff_list: list, number_of_calls: int, range_start: datetime, range_end: datetime) -> list:
+def create_ambulance_calls(staff_list: list[Paramedic], number_of_calls: int, range_start: datetime, range_end: datetime) -> list[Paramedic]:
     '''This accept list of paramedics, a date range, and a number of calls to create for those paramedics within that daterange, and will return a list of calls complete with Patient and Paramedic objects included.'''
       
     if number_of_calls > 999999:
         raise IndexError("Unable to generate more than 450,000 unique visits")
+
+    # Setting variables that must persist across while loops:
     current_date = datetime.now()
-    call_id_pool = set()
-    call_id = int(f"{current_date.year}{current_date.month:02d}{current_date.day:02d}1000000")
-    while len(call_id_pool) < number_of_calls:
-        num = call_id + 1
-        call_id_pool.add(num)
-        call_id +=1 
+    call_id = int(f"{current_date.year}{current_date.month:02d}{current_date.day:02d}100000")
+    # while len(call_id_pool) < number_of_calls:
+    #     call_id +=1 
+    #     call_id_pool.add(call_id)      
 
     c_list = []
     counter = 0
     trauma_problem_codes = [2,66,67]
-        
+    platoon_list_odds = [medic for medic in staff_list if medic.platoon in [1,3]]
+    platoon_list_evens = [medic for medic in staff_list if medic.platoon in [2,4]]        
 
     while counter < number_of_calls:
         # Number of paramedics on scene:
+
+        date_of_call = fake.date_time_between_dates(range_start, range_end)
+        call_id = int(call_id + 1)
+
+        if (date_of_call.day//4)%2 == 0:
+            platoon_list = platoon_list_evens
+        else:
+            platoon_list = platoon_list_odds
+             
         crew_config = random.randint(1,10)
-        
+ 
         if crew_config <= 2: # First Response Unit
-            p1 =  random.choice(staff_list)
+            p1 =  random.choice(platoon_list)
             attending_paramedic_id = p1.moh_id
             paramedic_2_id = None
             paramedic_3_id = None
         elif crew_config <= 9: # Normal Crew
-            p1,p2 = random.sample(staff_list,2)
+            p1,p2 = random.sample(platoon_list,2)
             attending_paramedic_id = p1.moh_id
             paramedic_2_id = p2.moh_id
             paramedic_3_id = None
         else: # Crew plus student/pbserver
-            p1,p2,p3 = random.sample(staff_list,3)
+            p1,p2,p3 = random.sample(platoon_list,3)
             attending_paramedic_id = p1.moh_id
             paramedic_2_id = p2.moh_id
             paramedic_3_id = p3.moh_id
-        # Date of Call picker:
-        date_of_call = fake.date_time_between_dates(range_start, range_end)
-        call_id = call_id_pool.pop()
+        
         # Generating patient naumes:
         patient = f"{fake.first_name()}, {fake.last_name()}"
         date_of_birth = fake.date_of_birth(minimum_age=0, maximum_age=110)
@@ -300,20 +308,17 @@ def create_csv(item_list: list, csv_type: Csv_Type):
         writer.writeheader()
         for row in dict_ls:
             writer.writerow(row)
-
-    
-
-
-            
+   
+          
 def main():
     paramedic_list = create_paramedic(500)
     create_csv(paramedic_list, Csv_Type.PARAMEDIC)
     today=datetime.now()
-    yesterday = today - timedelta(days=1)
+    yesterday = today - timedelta(days=1095)
     # last_year was used to populate the db on the first run only and daily updates contine from there
     # last_year = today - timedelta(days=365) 
-    call_list = create_ambulance_calls(paramedic_list, 5000,
-yesterday, yesterday)
+    call_list = create_ambulance_calls(paramedic_list, 500000,
+yesterday, today)
     create_csv(call_list, Csv_Type.AMBULANCE_CALL)
 
 main()  
