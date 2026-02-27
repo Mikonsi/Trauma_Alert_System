@@ -94,39 +94,6 @@ def _(mo, trauma_score):
 
 
 @app.cell
-def _():
-    # service_total = (
-    #     trauma_score
-    #     .filter(pl.col("call_month") >= start_date)
-    #     .group_by("category")
-    #     .agg(pl.col("monthly_exposure_count").sum().alias("rolling_avg"))
-    #     .with_columns([
-    #         pl.lit("SERVICE").alias("last_name"),
-    #         pl.lit("TOTAL").alias("first_name")
-    #     ])
-    # )
-    return
-
-
-@app.cell
-def _():
-    # service_avg = (
-    #     trauma_score
-    #     .filter(pl.col("call_month") >= start_date)
-    #     .group_by("category")
-    #     .agg(
-    #         (pl.col("monthly_exposure_count").sum() / 
-    #          pl.col("last_name").n_unique()).alias("rolling_avg")
-    #     )
-    #     .with_columns([
-    #         pl.lit("SERVICE").alias("last_name"),
-    #         pl.lit("AVERAGE").alias("first_name")
-    #     ])
-    # )
-    return
-
-
-@app.cell
 def _(mo):
     window_slider = mo.ui.slider(start=1, stop=12, step=1, value=3, label="Rolling Window (Months)")
     window_slider
@@ -138,6 +105,7 @@ def _(mo, pl, trauma_score):
     staff = trauma_score.select(pl.col("last_name") + ", " + pl.col("first_name")).unique().to_series().to_list()
     target_staff = mo.ui.dropdown(staff, label="Select By Staff")
     target_staff
+
     return (target_staff,)
 
 
@@ -174,93 +142,8 @@ def _(pl, relativedelta, target_staff, trauma_score, window_slider):
             .sort(["category", "rolling_avg"], descending=[False, True])
         )
 
-    # combined_data = pl.concat([
-    #     rolling_top_10.select(service_total.columns), 
-    #     service_total, 
-    #     service_avg
-    # ])
-    # combined_data
-
     rolling_top_10
-    return (rolling_top_10,)
 
-
-@app.cell
-def _():
-    # # 1. Calculate Service Wide Total per category
-    # service_total = (
-    #     trauma_score
-    #     .filter(pl.col("call_month") >= start_date)
-    #     .group_by("category")
-    #     .agg(pl.col("monthly_exposure_count").sum().alias("rolling_avg"))
-    #     .with_columns([
-    #         pl.lit("SERVICE").alias("last_name"),
-    #         pl.lit("TOTAL").alias("first_name")
-    #     ])
-    # )
-
-    # # 2. Calculate Service Wide Average per category
-    # # We divide the total category exposure by the number of unique staff in that category
-    # service_avg = (
-    #     trauma_score
-    #     .filter(pl.col("call_month") >= start_date)
-    #     .group_by("category")
-    #     .agg(
-    #         (pl.col("monthly_exposure_count").sum() / 
-    #          pl.col("last_name").n_unique()).alias("rolling_avg")
-    #     )
-    #     .with_columns([
-    #         pl.lit("SERVICE").alias("last_name"),
-    #         pl.lit("AVERAGE").alias("first_name")
-    #     ])
-    # )
-
-    # # 3. Combine with your existing rolling_top_10
-    # # Note: Ensure the column order matches
-    # int(combined_data = pl.concat([
-    #     rolling_top_10.select(service_total.columns), 
-    #     service_total, 
-    #     service_avg
-    # ])
-
-    # # Create the full_name for the chart
-    # with_benchmarks_chart_data = combined_data.with_columns(
-    #     (pl.col("last_name") + ", " + pl.col("first_name")).alias("full_name")
-    # )
-    return
-
-
-@app.cell
-def _(alt, pl, rolling_top_10, window_slider):
-    chart_data = rolling_top_10.with_columns(
-        (pl.col("last_name") + ", " + pl.col("first_name")).alias("full_name")
-    )
-
-    # 2. Build the chart
-    bar_chart = (
-        alt.Chart(chart_data)
-        .mark_bar()
-        .encode(
-            # X-axis: The sum of exposures
-            x=alt.X("rolling_avg:Q", title="Total Exposure Count"),
-
-            # Y-axis: Paramedic names, sorted by the exposure count
-            y=alt.Y("full_name:N", sort="-x", title="Staff Member"),
-
-            # Color: Group by Category to make the Top 10s distinct
-            color=alt.Color("category:N", legend=alt.Legend(title="Medical Category")),
-
-            # Tooltip for interactivity
-            tooltip=["full_name", "category", "rolling_avg"]
-        )
-        .properties(
-            title=f"Top Staff Exposure (Last {window_slider.value} Months)",
-            width=600,
-            height=alt.Step(20) # This keeps bar thickness consistent as the list grows/shrinks
-        )
-    )
-
-    bar_chart
     return
 
 

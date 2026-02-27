@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS calls_quarantine(
 -- * Also must add "REFRESH MATERIALIZED VIEW on automation script if materialization is used
 
 -- DROP VIEW IF EXISTS public.trauma_score_dashboard;
-CREATE OR REPLACE VIEW public.monthly_exposures AS
+CREATE OR REPLACE VIEW public.trauma_score_dashboard AS
 
 WITH patient_ages AS (
     SELECT *, EXTRACT(YEAR FROM AGE(date_of_birth)) AS patient_age
@@ -98,10 +98,9 @@ traumatic_criteria AS(
 	SELECT medic_id, last_name, first_name, call_id, date_of_call, 'Traumatic VSA'::text AS Category
 	FROM base_data
     WHERE problem_code = 1
-    
+-- Additional data needs to be added to generator to filter for these:
     UNION ALL
-
-    -- Trauma requiring hospital by-pass
+        -- Trauma requiring hospital by-pass
     SELECT medic_id, last_name, first_name, call_id, date_of_call, 'Trauma By-pass'::text AS Category
     FROM base_data
     WHERE hospital_type = 'Trauma Center'
@@ -111,26 +110,31 @@ traumatic_criteria AS(
     SELECT medic_id, last_name, first_name, call_id, date_of_call, 'Young Adult VSA'::text AS Category
 	FROM base_data
     WHERE patient_age > 18 AND patient_age < 60 
-        AND problem_code IN (1,2)
+    AND problem_code IN (1,2)
+	
+),
+
+monthly_medic_exposures AS (
+    SELECT medic_id, last_name, first_name, Category, DATE_TRUNC('month', date_of_call) AS call_month,
+    COUNT(DISTINCT call_id) AS monthly_exposure_count
+    FROM traumatic_criteria 
+    GROUP BY medic_id, last_name, first_name, Category, call_month
 )
-SELECT * FROM traumatic_criteria;
 
-
-CREATE OR REPLACE VIEW public.trauma_score AS
 SELECT 
 	last_name,
 	first_name,
 	Category,
-    DATE_TRUNC('month', date_of_call) AS call_month,
-	COUNT(DISTINCT call_id) AS monthly_exposure_count,
-	ROUND(AVG(COUNT(DISTINCT call_id)) OVER(PARTITION BY Category), 1) AS service_wide_avg,
+    call_month,
+	monthly_exposure_count,
+	ROUND(AVG(monthly_exposure_count) OVER(PARTITION BY Category), 1) AS service_wide_avg,
 	RANK() OVER(PARTITION BY Category ORDER BY monthly_exposure_count DESC) AS Rank_in_Category 
-FROM monthly_exposures
+FROM monthly_medic_exposures
 ;
 
 -- Grant select privileges to Grafana:
-GRANT SELECT ON public.trauma_score TO admin;
-GRANT SELECT ON public.monthly_exposures TO admin;
-GRANT SELECT ON public.monthly_exposures TO "user";
-GRANT SELECT ON public.trauma_score TO "user";
+GRANT SELECT on public.trauma_score_dashboard TO admin;
+GRANT SELECT ON public.trauma_score_dashboard TO "user";
+
+
 ;

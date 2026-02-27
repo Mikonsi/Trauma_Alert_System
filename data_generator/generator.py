@@ -5,73 +5,72 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 import csv 
 import random
-import argparse
-import os
 
 fake = Faker('en_CA')
 
 paramedic_problem_codes = {
-    1: {"VSA": "Cardiac/Medical"},
-    2: {"VSA": "Traumatic"},
-    11: {"Airway": "Obstruction (Partical/Complete)"},
-    21: {"Breathing": "Dyspnea"},
-    24: {"Breathing": "Respiratory Arrest"},
-    31: {"Circulation": "Hemorrhage"},
-    32: {"Circulation": "Hypertension"},
-    33: {"Circulation": "Hypotension"},
-    34: {"Circulation": "Suspected Sepsis"},
-    40: {"Neurological": "Traumatic Brain Injury"},
-    41: {"Neurological": "Stroke/TIA"},
-    42: {"Neurological": "Temp. Loss of Consciousness"},
-    43: {"Neurological": "Altered Level of Consciousness"},
-    44: {"Neurological": "Headache"},
-    45: {"Neurological": "Behaviour/Psychiatric"},
-    45.01: {"Neurological": "Excited Delirium"},
-    46: {"Neurological": "Active Seizure"},
-    47: {"Paralysis/Spinal Trauma"},
-    48: {"Neurological": "Confusion/Disorientation"},
-    49: {"Neurological": "Unconscious"},
-    50: {"Neurological": "Post-ictal"},
-    51: {"Cardiac": "Ischemic"},
-    53: {"Cardiac": "Palpitations"},
-    54: {"Cardiac": "Pulmonary Edema"},
-    65: {"Cardiac": "Post Arrest"},
-    56: {"Cardiac": "Cardiogenic Shock"},
-    57: {"Cardiac": "STEMI"},
-    58: {"Cardiac": "Hyperkalemia"},
-    60: {"Non-Traumatic": "Non Ischemic Chest Pain"},
-    61: {"Non-Traumatic": "Abdominal / Pelvic / Perineal / Rectal Pain"},
-    61.1: {"Non-Traumatic": "Renal Colic"},
-    61.2: {"Non-Traumatic": "Suspected UTI"},
-    62: {"Non-Traumatic": "Back Pain"},
-    63: {"Gastrointestinal": "Nausea / Vomiting / Diarrhea"},
-    65: {"Integumentary": "Integumentary"},
-    65.1: {"Integumentary": "Skin Tear"},
-    66: {"Musculoskeltal/Trauma": "Musculosketal"},
-    67: {"Musculoskeltal/Trauma": "Trauma / Injury"},
-    71: {"Obstetrical/Gynecological": "Obstetrical Emergency"},
-    72: {"Obstetrical/Gynecological": "Gynecological Emergency"},
-    73: {"Obstetrical/Gynecological": "Newborn / Neonatal"},
-    81: {"Endocrine/Toxicological": "Drug Alcohol Overdose"},
-    81.1: {"Endocrine/Toxicological": "Suspected Opioid Overdose"},
-    82: {"Endocrine/Toxicological": "Poisoning / Toxic Exposure"},
-    83: {"Endocrine/Toxicological": "Diabetic Emergency"},
-    84: {"Endocrine/Toxicological": "Allergic Reaction"},
-    85: {"Endocrine/Toxicological": "Anaphylaxis"},
-    86: {"Endocrine/Toxicological": "Adrenal Crisis"},
-    87: {"General and Minor": "Novel Medications"},
-    88: {"General and Minor": "Home Medical Technology"},
-    89: {"General and Minor": "Lift Assist"},
-    90: {"General and Minor": "Inter-facility Transfer"},
-    91: {"General and Minor": "Environmental Emergency"},
-    92: {"General and Minor": "Weakness / Dizziness / Unwell"},
-    93: {"General and Minor": "Treatment / Diagnosis & Return"},
-    94: {"General and Minor": "Convalescent / Invalid / Return Home"},
-    95: {"General and Minor": "Infectious Disease"},
-    96: {"General and Minor": "Organ Retrieval / Transfer"},
-    98: {"General and Minor": "Organ Recipient"},
-    99: {"General and Minor": "Other Medical / Trauma (see remarks)"},
-    99.15: {"General and Minor": "No Complaint"},
+
+1 : {"VSA" : "Cardiac/Medical"},
+2 : {"VSA" : "Traumatic"},
+11 : {"Airway" : "Obstruction (Partical/Complete)"},
+21 : {"Breathing": "Dyspnea"},
+24 : {"Breathing" : "Respiratory Arrest"},
+31 : {"Circulation": "Hemorrhage"},
+32 : {"Circulation" : "Hypertension"},
+33 : {"Circulation" : "Hypotension"},
+34 : {"Circulation" :"Suspected Sepsis"},
+40 : {"Neurological": "Traumatic Brain Injury" },
+41 : {"Neurological": "Stroke/TIA"},
+42 : {"Neurological": "Temp. Loss of Consciousness"},
+43 : {"Neurological": "Altered Level of Consciousness"},
+44 : {"Neurological": "Headache"},
+45 : {"Neurological": "Behaviour/Psychiatric"},
+45.01 : {"Neurological": "Excited Delirium"},
+46 : {"Neurological": "Active Seizure"},
+47 : {"Paralysis/Spinal Trauma"},
+48 : {"Neurological": "Confusion/Disorientation"},
+49 : {"Neurological": "Unconscious"},
+50 : {"Neurological": "Post-ictal"},
+51 : {"Cardiac" : "Ischemic"},
+53 : {"Cardiac" : "Palpitations"},
+54 : {"Cardiac" : "Pulmonary Edema"},
+55 : {"Cardiac" : "Post Arrest"},
+56 : {"Cardiac" : "Cardiogenic Shock"},
+57 : {"Cardiac" : "STEMI"},
+58 : {"Cardiac" : "Hyperkalemia"},
+60 : {"Non-Traumatic" : "Non Ischemic Chest Pain"},
+61 : {"Non-Traumatic" : "Abdominal / Pelvic / Perineal / Rectal Pain"},
+61.1 : {"Non-Traumatic" : "Renal Colic"},
+61.2 : {"Non-Traumatic" : "Suspected UTI"},
+62 : {"Non-Traumatic" : "Back Pain"},
+63 : {"Gastrointestinal" : "Nausea / Vomiting / Diarrhea"},
+65 : {"Integumentary" : "Integumentary"},
+65.1 : {"Integumentary" : "Skin Tear"},
+66 : {"Musculoskeltal/Trauma" : "Musculosketal"},
+67 : {"Musculoskeltal/Trauma" : "Trauma / Injury"},
+71 : {"Obstetrical/Gynecological" : "Obstetrical Emergency"},
+72 : {"Obstetrical/Gynecological" : "Gynecological Emergency"},
+73 : {"Obstetrical/Gynecological" : "Newborn / Neonatal"},
+81 : {"Endocrine/Toxicological" : "Drug Alcohol Overdose"},
+81.1 : {"Endocrine/Toxicological" : "Suspected Opioid Overdose"},
+82 : {"Endocrine/Toxicological" :  "Poisoning / Toxic Exposure"},
+83 : {"Endocrine/Toxicological" :  "Diabetic Emergency"},
+84 : {"Endocrine/Toxicological" :  "Allergic Reaction"},
+85 : {"Endocrine/Toxicological" :  "Anaphylaxis"},
+86 : {"Endocrine/Toxicological" : "Adrenal Crisis"},
+87 : {"General and Minor" : "Novel Medications"},
+88 : {"General and Minor" : "Home Medical Technology"},
+89 : {"General and Minor" : "Lift Assist"},
+90 : {"General and Minor" : "Inter-facility Transfer"},
+91 : {"General and Minor" : "Environmental Emergency"},
+92 : {"General and Minor" : "Weakness / Dizziness / Unwell"},
+93 : {"General and Minor" : "Treatment / Diagnosis & Return"},
+94 : {"General and Minor" : "Convalescent / Invalid / Return Home"},
+95 : {"General and Minor" : "Infectious Disease"},
+96 : {"General and Minor" : "Organ Retrieval / Transfer"},
+98 : {"General and Minor" : "Organ Recipient"},
+99 : {"General and Minor" : "Other Medical / Trauma (see remarks)"},
+99.15 : {"General and Minor" : "No Complaint"}
 }
 
 @dataclass
@@ -224,16 +223,7 @@ def create_ambulance_calls(staff_list: list[Paramedic], number_of_calls: int, ra
         problem_code = float(problem)
         # Assigning CTAS based on probabilities, CTAS 1/2 are most critical, most calls are 3, or 4, 5 is the lowest and is rarely used
         ctas_predictor = random.randint(0,100)
-        if station == 1:
-            ctas_predictor =-10
-        if station == 4:
-            ctas_predictor =-15
-        if station == 2:
-            ctas_predictor =-5
-        if station == 6:
-            ctas_predictor =+ 10
-            
-        if ctas_predictor < 75:
+        if ctas_predictor > 60:
             ctas = random.randint(3,4)
         else:
             rare_ctas = [1,2,5]
@@ -320,52 +310,15 @@ def create_csv(item_list: list, csv_type: Csv_Type):
             writer.writerow(row)
    
           
-def load_paramedics_from_csv(file_path: str) -> list[Paramedic]:
-    paramedic_list = []
-    with open(file_path, mode='r', newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            medic = Paramedic(
-                last_name=row['last_name'],
-                first_name=row['first_name'],
-                moh_id=int(row['moh_id']),
-                level=Paramedic_Level(row['level']),
-                station=int(row['station']),
-                platoon=int(row['platoon'])
-            )
-            paramedic_list.append(medic)
-    return paramedic_list
-
 def main():
-    parser = argparse.ArgumentParser(description="Generate synthetic ambulance data.")
-    parser.add_argument("--staff-list", type=str, help="Path to existing staff list CSV file.")
-    args = parser.parse_args()
-
-    paramedic_list = None
-    if args.staff_list:
-        if os.path.exists(args.staff_list):
-            print(f"Loading existing staff list from {args.staff_list}...")
-            try:
-                paramedic_list = load_paramedics_from_csv(args.staff_list)
-            except Exception as e:
-                print(f"Error loading staff list: {e}")
-                return
-        else:
-             print(f"Provided staff list file '{args.staff_list}' does not exist. Generating new staff list...")
-
-    if not paramedic_list:
-        print("Generating new staff list...")
-        paramedic_list = create_paramedic(500)
-        create_csv(paramedic_list, Csv_Type.PARAMEDIC)
-
+    paramedic_list = create_paramedic(500)
+    create_csv(paramedic_list, Csv_Type.PARAMEDIC)
     today=datetime.now()
     yesterday = today - timedelta(days=1095)
     # last_year was used to populate the db on the first run only and daily updates contine from there
     # last_year = today - timedelta(days=365) 
-    
-    print("Generating ambulance calls...")
-    call_list = create_ambulance_calls(paramedic_list, 500000, yesterday, today)
+    call_list = create_ambulance_calls(paramedic_list, 500000,
+yesterday, today)
     create_csv(call_list, Csv_Type.AMBULANCE_CALL)
 
-if __name__ == "__main__":
-    main()  
+main()  
