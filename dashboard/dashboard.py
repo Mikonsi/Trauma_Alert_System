@@ -22,18 +22,16 @@ def _():
 
 @app.cell
 def _(os, pl):
-    # Build connection string from environment variables
-    user = os.getenv("POSTGRES_USER", "admin")
+    user = os.getenv("POSTGRES_USER")
     password = os.getenv("POSTGRES_PASSWORD")
-    db_name = os.getenv("DB_NAME", "paramedic_db")
+    db_name = os.getenv("DB_NAME")
     host = "localhost"
     port = "5432"
 
     connection_string = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
 
-    # Query the view
     trauma_score = pl.read_database_uri(
-        query="SELECT * FROM public.trauma_score_dashboard",
+        query="SELECT * FROM public.trauma_score",
         uri=connection_string,
         engine="connectorx"
     )
@@ -182,52 +180,7 @@ def _(pl, relativedelta, target_staff, trauma_score, window_slider):
     # combined_data
 
     rolling_top_10
-    return (rolling_top_10,)
-
-
-@app.cell
-def _():
-    # # 1. Calculate Service Wide Total per category
-    # service_total = (
-    #     trauma_score
-    #     .filter(pl.col("call_month") >= start_date)
-    #     .group_by("category")
-    #     .agg(pl.col("monthly_exposure_count").sum().alias("rolling_avg"))
-    #     .with_columns([
-    #         pl.lit("SERVICE").alias("last_name"),
-    #         pl.lit("TOTAL").alias("first_name")
-    #     ])
-    # )
-
-    # # 2. Calculate Service Wide Average per category
-    # # We divide the total category exposure by the number of unique staff in that category
-    # service_avg = (
-    #     trauma_score
-    #     .filter(pl.col("call_month") >= start_date)
-    #     .group_by("category")
-    #     .agg(
-    #         (pl.col("monthly_exposure_count").sum() / 
-    #          pl.col("last_name").n_unique()).alias("rolling_avg")
-    #     )
-    #     .with_columns([
-    #         pl.lit("SERVICE").alias("last_name"),
-    #         pl.lit("AVERAGE").alias("first_name")
-    #     ])
-    # )
-
-    # # 3. Combine with your existing rolling_top_10
-    # # Note: Ensure the column order matches
-    # int(combined_data = pl.concat([
-    #     rolling_top_10.select(service_total.columns), 
-    #     service_total, 
-    #     service_avg
-    # ])
-
-    # # Create the full_name for the chart
-    # with_benchmarks_chart_data = combined_data.with_columns(
-    #     (pl.col("last_name") + ", " + pl.col("first_name")).alias("full_name")
-    # )
-    return
+    return latest_date, rolling_top_10, start_date
 
 
 @app.cell
@@ -261,6 +214,11 @@ def _(alt, pl, rolling_top_10, window_slider):
     )
 
     bar_chart
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -301,6 +259,89 @@ def _(alt, ctas_dropdown, df_calls, pl):
     )
 
     pie_chart
+    return
+
+
+@app.cell
+def _(
+    alt,
+    latest_date,
+    pl,
+    relativedelta,
+    start_date,
+    target_staff,
+    trauma_score,
+    window_slider,
+):
+    latest_date_ = trauma_score["call_month"].max()
+    start_date_ = latest_date - relativedelta(months=window_slider.value)
+
+    # 1. Prepare base data for the window
+    window_data = trauma_score.filter(pl.col("call_month") >= start_date)
+
+    # 2. Calculate TOTAL exposures for EVERY staff member in this window, per category
+    staff_totals = (
+        window_data
+        .group_by(["category", "last_name", "first_name"])
+        .agg(pl.col("monthly_exposure_count").sum().alias("total_exposures"))
+    )
+
+    # 3. Calculate Service Median from those totals
+    service_medians = (
+        staff_totals
+        .group_by("category")
+        .agg(pl.col("total_exposures").median().alias("benchmark_value"))
+        .with_columns(pl.lit("Service Median").alias("type"))
+    )
+
+    # 4. Get the selected staff's total
+    selected_staff_total = (
+        staff_totals
+        .filter((pl.col("last_name") + ", " + pl.col("first_name")) == target_staff.value)
+        .select(["category", "total_exposures"])
+        .rename({"total_exposures": "benchmark_value"})
+        .with_columns(pl.lit(target_staff.value).alias("type"))
+    )
+
+    # 5. Combine for visualization
+    viz_data = pl.concat([service_medians, selected_staff_total])
+
+    # Identify unique categories from the data to be dynamic
+    unique_categories = sorted(trauma_score["category"].unique().to_list())
+    charts = []
+
+    for cat in unique_categories:
+        cat_data = viz_data.filter(pl.col("category") == cat)
+
+        # Ensure the selected staff is represented even with 0 exposures
+        if cat_data.filter(pl.col("type") == target_staff.value).is_empty():
+            cat_data = pl.concat([
+                cat_data, 
+                pl.DataFrame({
+                    "category": [cat],
+                    "benchmark_value": [0.0],
+                    "type": [target_staff.value]
+                })
+            ])
+
+        chart = (
+            alt.Chart(cat_data)
+            .mark_bar()
+            .encode(
+                x=alt.X("type:N", title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("benchmark_value:Q", title="Total Exposures"),
+                color=alt.Color("type:N", legend=None, scale=alt.Scale(domain=[target_staff.value, "Service Median"], range=["#EF553B", "#636EFA"])),
+                tooltip=["category", "type", "benchmark_value"]
+            )
+            .properties(
+                title=f"{cat}",
+                width=200,
+                height=150
+            )
+        )
+        charts.append(chart)
+
+    # Layout the charts in a 2x2 grid if there are 4 categories
     return
 
 

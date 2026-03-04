@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.17.0"
+__generated_with = "0.19.7"
 app = marimo.App(width="full")
 
 
@@ -15,8 +15,8 @@ def _():
 
 @app.cell
 def _(pl):
-    staff = pl.read_csv("data_generator/staff_list.csv")
-    calls = pl.read_csv("data_generator/call_list.csv", 
+    staff = pl.read_csv("staff_list.csv")
+    calls = pl.read_csv("call_list.csv", 
                         schema_overrides = {
                            "date_of_birth": pl.Date
                        })
@@ -32,8 +32,7 @@ def _(calls, staff):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Potentially Traumatizing Calls
     - Traumatic VSA (any age)
     - Trauma requiring hospital by-pass
@@ -42,20 +41,17 @@ def _(mo):
     - Any Pediatric CTAS 2 (tracked seperately from CTAS 1's)
     - Medical VSA (age 18-60) where paramedics pronounce on scene
     - Any call where patient dies after paramedic contact
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Important Views:
     - Each type of traumatic call summed by Paramedic, and relative to service mean/median/mode paramedics
     - Aggregate total exposure to all possibly traumatizing calls to each paramedic and relative to service mean/median/mode
-    """
-    )
+    """)
     return
 
 
@@ -123,7 +119,9 @@ def _(calls, mo, staff):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# Pediatric VSA:""")
+    mo.md(r"""
+    # Pediatric VSA:
+    """)
     return
 
 
@@ -168,11 +166,9 @@ def _(calls, mo, staff):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Repeating the same logic for all "Potentially Traumatizing Calls"
-    """
-    )
+    """)
     return
 
 
@@ -239,6 +235,82 @@ def _(calls, mo, staff):
         	ROUND(AVG(exposure_count) OVER(PARTITION BY Category), 1) AS service_wide_avg,
         	RANK() OVER(PARTITION BY Category ORDER BY exposure_count DESC) AS Rank_in_Category 
         FROM medic_exposures
+        """
+    )
+    return
+
+
+@app.cell
+def _(calls, mo):
+    _df = mo.sql(
+        f"""
+        SELECT * FROM calls
+        """
+    )
+    return
+
+
+@app.cell
+def _(calls, mo, staff):
+    _df = mo.sql(
+        f"""
+        -- CREATE OR REPLACE VIEW monthly_exposures AS
+            WITH patient_ages AS (
+                -- Cast date_of_call here to ensure it's a date type
+                SELECT *, 
+                       EXTRACT(YEAR FROM AGE(date_of_birth)) AS patient_age,
+                       date_of_call::DATE AS call_date -- Cast to DATE
+                FROM calls 
+            ),
+            base_data AS (
+                SELECT pa.attending_paramedic_id AS medic_id,
+                staff.last_name, staff.first_name,
+                pa.call_id, pa.patient_age, pa.ctas, pa.problem_code, pa.hospital_type, pa.call_date
+                FROM patient_ages pa 
+                JOIN staff on pa.attending_paramedic_id = staff.moh_id
+                UNION ALL 
+                SELECT pa.paramedic_2_id as medic_id,
+                staff.last_name, staff.first_name,
+                pa.call_id, pa.patient_age, pa.ctas, pa.problem_code, pa.hospital_type, pa.call_date
+                FROM patient_ages pa 
+                JOIN staff ON pa.paramedic_2_id = staff.moh_id
+            	UNION ALL
+            	SELECT pa.paramedic_3_id as medic_id,
+                staff.last_name, staff.first_name,
+                pa.call_id, pa.patient_age, pa.ctas, pa.problem_code, pa.hospital_type, pa.call_date
+                FROM patient_ages pa 
+                JOIN staff ON pa.paramedic_3_id = staff.moh_id
+
+            ),
+
+            traumatic_criteria AS(
+                -- Pediatric VSA:
+            	SELECT medic_id, last_name, first_name, call_id, call_date, 'Ped VSA'::text AS Category
+            	FROM base_data
+                WHERE patient_age < 18 AND problem_code IN (1,2)
+
+                UNION ALL
+
+                -- Traumatic VSA (any age)
+            	SELECT medic_id, last_name, first_name, call_id, call_date, 'Traumatic VSA'::text AS Category
+            	FROM base_data
+                WHERE problem_code = 1
+
+                UNION ALL
+
+                -- Trauma requiring hospital by-pass
+                SELECT medic_id, last_name, first_name, call_id, call_date, 'Trauma By-pass'::text AS Category
+                FROM base_data
+                WHERE hospital_type = 'Trauma Center'
+
+                UNION ALL
+
+                SELECT medic_id, last_name, first_name, call_id, call_date, 'Young Adult VSA'::text AS Category
+            	FROM base_data
+                WHERE patient_age > 18 AND patient_age < 60 
+                    AND problem_code IN (1,2)
+            )
+            SELECT * FROM traumatic_criteria;
         """
     )
     return

@@ -225,19 +225,20 @@ def create_ambulance_calls(staff_list: list[Paramedic], number_of_calls: int, ra
         # Assigning CTAS based on probabilities, CTAS 1/2 are most critical, most calls are 3, or 4, 5 is the lowest and is rarely used
         ctas_predictor = random.randint(0,100)
         if station == 1:
-            ctas_predictor =-10
+            ctas_predictor -= 5
         if station == 4:
-            ctas_predictor =-15
+            ctas_predictor -= 10
         if station == 2:
-            ctas_predictor =-5
+            ctas_predictor -= 3 
         if station == 6:
-            ctas_predictor =+ 10
+            ctas_predictor += 7
             
-        if ctas_predictor < 75:
+        if ctas_predictor < 65:
             ctas = random.randint(3,4)
+        elif ctas_predictor < 85:
+            ctas = random.choice([1,2])
         else:
-            rare_ctas = [1,2,5]
-            ctas = random.choice(rare_ctas)
+            ctas = random.choice([1,5])
         if problem_code in trauma_problem_codes and ctas <= 2:
             trauma_bypass = random.randint(0,1)
             if trauma_bypass == 0:
